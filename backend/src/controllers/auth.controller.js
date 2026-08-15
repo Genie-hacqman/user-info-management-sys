@@ -1,7 +1,10 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 const prisma = require("../../prismaClient");
+const { config } = require("../config/env");
+
 const SALT_ROUNDS = 10;
+
 async function register(req, res) {
   try {
     const {
@@ -87,7 +90,7 @@ async function login(req, res) {
     });
     const token = jwt.sign({
       userId: updatedUser.id
-    }, process.env.JWT_SECRET, {
+    }, config.JWT_SECRET, {
       expiresIn: "1d"
     });
     const {
