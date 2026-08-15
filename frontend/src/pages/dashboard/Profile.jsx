@@ -1,45 +1,37 @@
-import { Link } from 'react-router-dom'
-import { FaUserCircle, FaPhoneAlt, FaEnvelope, FaShieldAlt, FaCalendarAlt, FaSignOutAlt } from 'react-icons/fa'
-import Button from '../../components/Button'
-import { useAuth } from '../../context/AuthContext'
-
+import { Link } from 'react-router-dom';
+import { FaUserCircle, FaPhoneAlt, FaEnvelope, FaShieldAlt, FaCalendarAlt, FaSignOutAlt } from 'react-icons/fa';
+import Button from '../../components/Button';
+import { useAuth } from '../../context/AuthContext';
 const localeMap = {
   English: 'en-US',
   Spanish: 'es-ES',
   French: 'fr-FR',
-  Arabic: 'ar-EG',
-}
-
+  Arabic: 'ar-EG'
+};
 const getSettings = () => {
   try {
-    return JSON.parse(localStorage.getItem('sly-user-settings') || '{}')
+    return JSON.parse(localStorage.getItem('sly-user-settings') || '{}');
   } catch {
-    return {}
+    return {};
   }
-}
-
+};
 const formatWithPreferences = (value, options = {}) => {
-  const settings = getSettings()
-  const locale = localeMap[settings.language] || 'en-US'
-  const timeZone = settings.timezone || 'UTC'
-
-  if (!value) return 'N/A'
-
+  const settings = getSettings();
+  const locale = localeMap[settings.language] || 'en-US';
+  const timeZone = settings.timezone || 'UTC';
+  if (!value) return 'N/A';
   return new Intl.DateTimeFormat(locale, {
     timeZone,
-    ...options,
-  }).format(new Date(value))
-}
-
+    ...options
+  }).format(new Date(value));
+};
 export default function ProfilePage() {
-  const { user, logout } = useAuth()
-  const profileCompletion = Math.min(
-    100,
-    Math.round([user?.fullName, user?.email, user?.phone].filter(Boolean).length / 3 * 100)
-  )
-
-  return (
-    <div className="space-y-8">
+  const {
+    user,
+    logout
+  } = useAuth();
+  const profileCompletion = Math.min(100, Math.round([user?.fullName, user?.email, user?.phone].filter(Boolean).length / 3 * 100));
+  return <div className="space-y-8">
       <div className="rounded-2xl border border-white/10 bg-slate-900/60 p-8 shadow-[0_0_40px_rgba(139,92,246,0.15)] backdrop-blur-sm">
         <div className="flex flex-col gap-8 md:flex-row md:items-center md:justify-between">
           <div className="flex items-center gap-6">
@@ -96,7 +88,11 @@ export default function ProfilePage() {
               <span className="text-emerald-300 text-lg">📅</span>
               <div>
                 <p className="text-xs text-slate-400 font-semibold uppercase tracking-wider">Member Since</p>
-                <p className="text-white font-semibold mt-1">{user?.createdAt ? formatWithPreferences(user.createdAt, { year: 'numeric', month: 'short', day: 'numeric' }) : 'N/A'}</p>
+                <p className="text-white font-semibold mt-1">{user?.createdAt ? formatWithPreferences(user.createdAt, {
+                  year: 'numeric',
+                  month: 'short',
+                  day: 'numeric'
+                }) : 'N/A'}</p>
               </div>
             </div>
             <div className="flex items-center gap-3 rounded-xl border border-green-500/30 bg-green-500/5 p-4">
@@ -126,12 +122,13 @@ export default function ProfilePage() {
               <p className="text-xs font-bold text-violet-300 uppercase tracking-wider">Profile completion</p>
               <p className="mt-3 font-bold text-violet-100 text-lg">{profileCompletion}%</p>
               <div className="mt-3 h-2 rounded-full bg-slate-700 overflow-hidden">
-                <div className="h-full bg-[linear-gradient(90deg,#8b5cf6,#3b82f6)] transition-all duration-500" style={{width: `${profileCompletion}%`}} />
+                <div className="h-full bg-[linear-gradient(90deg,#8b5cf6,#3b82f6)] transition-all duration-500" style={{
+                width: `${profileCompletion}%`
+              }} />
               </div>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  )
+    </div>;
 }

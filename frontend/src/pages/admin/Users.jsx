@@ -1,464 +1,365 @@
-import { useMemo, useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import Button from '../../components/Button'
-import ConfirmDialog from '../../components/ConfirmDialog'
-import PageHeader from '../../components/PageHeader'
-import EmptyState from '../../components/EmptyState'
-import Modal from '../../components/Modal'
-import userService from '../../services/userService'
-
+import { useMemo, useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import Modal from '@/components/Modal';
+import userService from '@/services/userService';
+import { Plus, RefreshCw, Search, Users as UsersIcon } from 'lucide-react';
+const initialFormData = {
+  name: '',
+  email: '',
+  phone: '',
+  role: 'User',
+  status: 'Active',
+  password: 'TempPass123!'
+};
 export default function UsersPage() {
-  const [users, setUsers] = useState([])
-  const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [roleFilter, setRoleFilter] = useState('All')
-  const [statusFilter, setStatusFilter] = useState('All')
-  const [currentPage, setCurrentPage] = useState(1)
-  const [pendingAction, setPendingAction] = useState(null)
-  const [isModalOpen, setIsModalOpen] = useState(false)
-  const [editingUser, setEditingUser] = useState(null)
-  const [formData, setFormData] = useState({ name: '', email: '', phone: '', role: 'User', status: 'Active' })
-  const [successMessage, setSuccessMessage] = useState('')
-  const [formError, setFormError] = useState('')
-
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('All');
+  const [statusFilter, setStatusFilter] = useState('All');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalMode, setModalMode] = useState('add');
+  const [editingUserId, setEditingUserId] = useState(null);
+  const [formData, setFormData] = useState(initialFormData);
+  const [formError, setFormError] = useState('');
+  const [notice, setNotice] = useState('');
   const loadUsers = async () => {
     try {
-      const { data } = await userService.getUsers()
-      setUsers(data || [])
+      const {
+        data
+      } = await userService.getUsers();
+      setUsers(data || []);
     } catch (error) {
-      console.error('Failed to load users:', error)
-      setUsers([])
+      console.error('Failed to load users:', error);
+      setUsers([]);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
-
+  };
   useEffect(() => {
-    loadUsers()
-
-    const handleUserDataUpdate = () => loadUsers()
-    window.addEventListener('sly-user-data-updated', handleUserDataUpdate)
-
-    return () => window.removeEventListener('sly-user-data-updated', handleUserDataUpdate)
-  }, [])
-
-  const rowsPerPage = 5
-
-  const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
-      const matchesSearch = [user.name, user.email, user.phone].some((value) =>
-        value.toLowerCase().includes(search.toLowerCase()),
-      )
-      const matchesRole = roleFilter === 'All' || user.role === roleFilter
-      const matchesStatus = statusFilter === 'All' || user.status === statusFilter
-      return matchesSearch && matchesRole && matchesStatus
-    })
-  }, [users, search, roleFilter, statusFilter])
-
-  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / rowsPerPage))
-  const paginatedUsers = filteredUsers.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage)
-
-  const handleStatusToggle = async (userId) => {
-    const targetUser = users.find((user) => user.id === userId)
-    if (!targetUser) return
-
-    const nextStatus = targetUser.status === 'Active' ? 'Inactive' : 'Active'
-    try {
-      await userService.updateUser(userId, { status: nextStatus })
-      setUsers((prev) => prev.map((user) => (user.id === userId ? { ...user, status: nextStatus } : user)))
-      window.dispatchEvent(new CustomEvent('sly-user-data-updated'))
-    } catch (error) {
-      console.error('Failed to update user status:', error)
-    }
-  }
-
-  const handleDelete = async (userId) => {
-    try {
-      await userService.deleteUser(userId)
-      setUsers((prev) => prev.filter((user) => user.id !== userId))
-      window.dispatchEvent(new CustomEvent('sly-user-data-updated'))
-    } catch (error) {
-      console.error('Failed to delete user:', error)
-    }
-  }
-
-  const openAddUserModal = () => {
-    setEditingUser(null)
-    setFormData({ name: '', email: '', phone: '', role: 'User', status: 'Active', password: 'TempPass123!' })
-    setFormError('')
-    setIsModalOpen(true)
-  }
-
-  const openEditUserModal = (user) => {
-    setEditingUser(user)
-    setFormData({ ...user, password: '' })
-    setFormError('')
-    setIsModalOpen(true)
-  }
-
-  const handleFormChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-    setFormError('')
-  }
-
-  const handleSaveUser = async () => {
-    setFormError('')
-
-    if (!formData.name.trim()) {
-      setFormError('Full name is required')
-      return
-    }
-
-    if (!formData.email.trim()) {
-      setFormError('Email is required')
-      return
-    }
-
-    if (!formData.email.includes('@')) {
-      setFormError('Please enter a valid email')
-      return
-    }
-
-    if (!formData.phone.trim()) {
-      setFormError('Phone is required')
-      return
-    }
-
-    try {
-      if (editingUser) {
-        await userService.updateUser(editingUser.id, {
-          name: formData.name.trim(),
-          email: formData.email.trim(),
-          phone: formData.phone.trim(),
-          role: formData.role,
-          status: formData.status,
-        })
-        setSuccessMessage(`User "${formData.name}" updated successfully!`)
-      } else {
-        const generatedPassword = formData.password || 'TempPass123!'
-        const { data } = await userService.createUser({
-          name: formData.name.trim(),
-          email: formData.email.trim(),
-          phone: formData.phone.trim(),
-          role: formData.role,
-          status: formData.status,
-          password: generatedPassword,
-        })
-
-        if (generatedPassword === 'TempPass123!') {
-          window.alert(`User "${data.name}" was created with the temporary password: ${generatedPassword}`)
-        }
-        setSuccessMessage(`User "${formData.name}" added successfully!`)
+    let isMounted = true;
+    const fetchUsers = async () => {
+      try {
+        const {
+          data
+        } = await userService.getUsers();
+        if (isMounted) setUsers(data || []);
+      } catch (error) {
+        console.error('Failed to load users:', error);
+        if (isMounted) setUsers([]);
+      } finally {
+        if (isMounted) setLoading(false);
       }
-
-      await loadUsers()
-      window.dispatchEvent(new CustomEvent('sly-user-data-updated'))
-      setIsModalOpen(false)
-      setCurrentPage(1)
-      setTimeout(() => setSuccessMessage(''), 4000)
+    };
+    void fetchUsers();
+    const handleUserDataUpdate = () => {
+      void fetchUsers();
+    };
+    window.addEventListener('sly-user-data-updated', handleUserDataUpdate);
+    return () => {
+      isMounted = false;
+      window.removeEventListener('sly-user-data-updated', handleUserDataUpdate);
+    };
+  }, []);
+  const openAddUserModal = () => {
+    setModalMode('add');
+    setEditingUserId(null);
+    setFormData(initialFormData);
+    setFormError('');
+    setIsModalOpen(true);
+  };
+  const openEditUserModal = user => {
+    setModalMode('edit');
+    setEditingUserId(user.id);
+    setFormData({
+      name: user.name || '',
+      email: user.email || '',
+      phone: user.phone || '',
+      role: user.role || 'User',
+      status: user.status || 'Active',
+      password: ''
+    });
+    setFormError('');
+    setIsModalOpen(true);
+  };
+  const handleFormChange = event => {
+    const {
+      name,
+      value
+    } = event.target;
+    setFormData(previous => ({
+      ...previous,
+      [name]: value
+    }));
+    setFormError('');
+  };
+  const closeModal = () => {
+    setIsModalOpen(false);
+    setFormError('');
+    setEditingUserId(null);
+    setFormData(initialFormData);
+  };
+  const handleSaveUser = async () => {
+    const trimmedName = formData.name.trim();
+    const trimmedEmail = formData.email.trim();
+    const trimmedPhone = formData.phone.trim();
+    if (!trimmedName) {
+      setFormError('Full name is required.');
+      return;
+    }
+    if (!trimmedEmail) {
+      setFormError('Email is required.');
+      return;
+    }
+    if (!trimmedEmail.includes('@')) {
+      setFormError('Please enter a valid email address.');
+      return;
+    }
+    if (!trimmedPhone) {
+      setFormError('Phone number is required.');
+      return;
+    }
+    try {
+      const payload = {
+        name: trimmedName,
+        email: trimmedEmail,
+        phone: trimmedPhone,
+        role: formData.role,
+        status: formData.status
+      };
+      if (modalMode === 'add') {
+        await userService.createUser({
+          ...payload,
+          password: formData.password || 'TempPass123!'
+        });
+        setNotice(`User "${trimmedName}" was added successfully.`);
+      } else {
+        await userService.updateUser(editingUserId, payload);
+        setNotice(`User "${trimmedName}" was updated successfully.`);
+      }
+      closeModal();
+      setCurrentPage(1);
+      await loadUsers();
+      window.dispatchEvent(new CustomEvent('sly-user-data-updated'));
     } catch (error) {
-      console.error('Failed to save user:', error)
-      setFormError(error.message || 'Unable to save user.')
+      const message = error?.response?.data?.message || error.message || 'Unable to save user.';
+      setFormError(message);
     }
-  }
-
-  const openConfirm = (type, user) => {
-    setPendingAction({ type, user })
-  }
-
-  const executeAction = () => {
-    if (!pendingAction) return
-
-    if (pendingAction.type === 'delete') {
-      handleDelete(pendingAction.user.id)
-      setSuccessMessage(`User "${pendingAction.user.name}" deleted successfully!`)
+  };
+  const handleDeleteUser = async user => {
+    const confirmed = window.confirm(`Delete user "${user.name}"? This action cannot be undone.`);
+    if (!confirmed) return;
+    try {
+      await userService.deleteUser(user.id);
+      setNotice(`User "${user.name}" was deleted successfully.`);
+      await loadUsers();
+      window.dispatchEvent(new CustomEvent('sly-user-data-updated'));
+    } catch (error) {
+      console.error('Failed to delete user:', error);
+      setNotice('Failed to delete user.');
     }
-    if (pendingAction.type === 'status') {
-      handleStatusToggle(pendingAction.user.id)
-      const newStatus = pendingAction.user.status === 'Active' ? 'Inactive' : 'Active'
-      setSuccessMessage(`User "${pendingAction.user.name}" marked as ${newStatus}!`)
-    }
-
-    setPendingAction(null)
-    setTimeout(() => setSuccessMessage(''), 4000)
-  }
-
-  return (
-    <div className="rounded-2xl bg-white p-6 shadow-sm">
-      {successMessage && (
-        <div className="mb-6 rounded-lg bg-green-50 border border-green-200 p-4 flex items-center gap-3 animate-pulse">
-          <span className="text-green-600 text-lg">✓</span>
-          <p className="text-sm font-medium text-green-700">{successMessage}</p>
+  };
+  const rowsPerPage = 5;
+  const filteredUsers = useMemo(() => {
+    return users.filter(user => {
+      const matchesSearch = [user.name, user.email, user.phone].some(value => value.toLowerCase().includes(search.toLowerCase()));
+      const matchesRole = roleFilter === 'All' || user.role === roleFilter;
+      const matchesStatus = statusFilter === 'All' || user.status === statusFilter;
+      return matchesSearch && matchesRole && matchesStatus;
+    });
+  }, [users, search, roleFilter, statusFilter]);
+  const totalPages = Math.max(1, Math.ceil(filteredUsers.length / rowsPerPage));
+  const paginatedUsers = filteredUsers.slice((currentPage - 1) * rowsPerPage, currentPage * rowsPerPage);
+  return <div className="space-y-6">
+      {}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <h1 className="text-3xl font-bold text-white sm:text-4xl">User Management</h1>
+          <p className="mt-2 text-sm text-slate-300 sm:text-base">Add, edit, or remove users from your system</p>
         </div>
-      )}
-
-      <div className="flex items-center justify-between mb-8">
-        <PageHeader
-          pretitle="Management"
-          title="User management"
-          description="Add, edit, or remove users from your system."
-        />
-        <div className="flex gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row">
           <Button onClick={async () => {
-            try {
-              const currentUsers = users.slice()
-              if (!currentUsers.length) {
-                setSuccessMessage('No users to reset.')
-                setTimeout(() => setSuccessMessage(''), 4000)
-                return
-              }
-              if (window.confirm('Refresh the current user list from the backend?')) {
-                await loadUsers()
-                setSuccessMessage('User list refreshed from backend.')
-                setTimeout(() => setSuccessMessage(''), 4000)
-              }
-            } catch (error) {
-              console.error('Failed to refresh users:', error)
-            }
-          }} variant="secondary">
-            ↻ Refresh Data
+          await loadUsers();
+          setNotice('User list refreshed.');
+        }} variant="outline" size="sm" className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Refresh
           </Button>
-          <Button onClick={openAddUserModal} className="bg-green-600 hover:bg-green-700">
-            + Add User
+          <Button onClick={openAddUserModal} className="gap-2">
+            <Plus className="h-4 w-4" />
+            Add User
           </Button>
         </div>
       </div>
 
-      <div className="mb-5 grid gap-3 md:grid-cols-3">
-        <input
-          type="search"
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value)
-            setCurrentPage(1)
-          }}
-          placeholder="Search users..."
-          aria-label="Search users by name, email, or phone"
-          className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-        />
+      {notice && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
+          {notice}
+        </div>}
 
-        <select
-          value={roleFilter}
-          onChange={(e) => {
-            setRoleFilter(e.target.value)
-            setCurrentPage(1)
-          }}
-          aria-label="Filter users by role"
-          className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-        >
-          <option value="All">All roles</option>
-          {['Admin', 'Manager', 'Support', 'User'].map((role) => (
-            <option key={role} value={role}>{role}</option>
-          ))}
-        </select>
-
-        <select
-          value={statusFilter}
-          onChange={(e) => {
-            setStatusFilter(e.target.value)
-            setCurrentPage(1)
-          }}
-          aria-label="Filter users by status"
-          className="rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
-        >
-          <option value="All">All statuses</option>
-          <option value="Active">Active</option>
-          <option value="Inactive">Inactive</option>
-          <option value="Pending">Pending</option>
-        </select>
-      </div>
-
-      {loading ? (
-        <div className="rounded-xl border border-slate-200 bg-slate-50 px-6 py-12 text-center text-sm text-slate-500">
-          Loading users from the backend...
-        </div>
-      ) : filteredUsers.length === 0 ? (
-        <EmptyState icon="👤" title="No users found" description="Try adjusting your search or filters." />
-      ) : (
-        <>
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="min-w-full divide-y divide-slate-200">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">User</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Email</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Phone</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Role</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Status</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Registered</th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-slate-700">Actions</th>
-                </tr>
-              </thead>
-
-              <tbody className="divide-y divide-slate-200 bg-white">
-                {paginatedUsers.map((user) => (
-                  <tr key={user.id} className="hover:bg-slate-50 transition">
-                    <td className="px-4 py-3 text-sm font-medium text-slate-800">{user.name}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{user.email}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{user.phone}</td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{user.role}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <span
-                        className={`rounded-full px-2 py-1 text-xs font-medium ${
-                          user.status === 'Active'
-                            ? 'bg-emerald-100 text-emerald-700'
-                            : user.status === 'Pending'
-                              ? 'bg-amber-100 text-amber-700'
-                              : 'bg-slate-200 text-slate-700'
-                        }`}
-                      >
-                        {user.status}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-sm text-slate-700">{user.registeredAt}</td>
-                    <td className="px-4 py-3 text-sm">
-                      <div className="flex flex-wrap gap-2">
-                        <Link to={`/admin/users/${user.id}`} className="font-medium text-blue-600 hover:underline focus:outline-none focus:ring-2 focus:ring-blue-500 rounded px-1">
-                          View
-                        </Link>
-                        <button type="button" onClick={() => openEditUserModal(user)} className="font-medium text-indigo-600 hover:underline focus:outline-none focus:ring-2 focus:ring-indigo-500 rounded px-1">
-                          Edit
-                        </button>
-                        <button type="button" onClick={() => openConfirm('status', user)} className="font-medium text-amber-600 hover:underline focus:outline-none focus:ring-2 focus:ring-amber-500 rounded px-1">
-                          {user.status === 'Active' ? 'Deactivate' : 'Activate'}
-                        </button>
-                        <button type="button" onClick={() => openConfirm('delete', user)} className="font-medium text-red-600 hover:underline focus:outline-none focus:ring-2 focus:ring-red-500 rounded px-1">
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-slate-500">
-              Showing {filteredUsers.length ? (currentPage - 1) * rowsPerPage + 1 : 0}–
-              {Math.min(currentPage * rowsPerPage, filteredUsers.length)} of {filteredUsers.length} users
-            </p>
-
-            <div className="flex items-center gap-2">
-              <Button type="button" variant="secondary" size="sm" onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))} disabled={currentPage === 1}>
-                Previous
-              </Button>
-              <span className="text-sm text-slate-600">Page {currentPage} of {totalPages}</span>
-              <Button type="button" variant="secondary" size="sm" onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages}>
-                Next
-              </Button>
+      {}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Input placeholder="Search by name, email, or phone..." value={search} onChange={e => {
+              setSearch(e.target.value);
+              setCurrentPage(1);
+            }} className="pl-9" />
             </div>
+            <select value={roleFilter} onChange={e => {
+            setRoleFilter(e.target.value);
+            setCurrentPage(1);
+          }} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+              <option value="All">All Roles</option>
+              <option value="Admin">Admin</option>
+              <option value="Manager">Manager</option>
+              <option value="Support">Support</option>
+              <option value="User">User</option>
+            </select>
+            <select value={statusFilter} onChange={e => {
+            setStatusFilter(e.target.value);
+            setCurrentPage(1);
+          }} className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
+              <option value="All">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Inactive">Inactive</option>
+              <option value="Pending">Pending</option>
+            </select>
           </div>
-        </>
-      )}
+        </CardContent>
+      </Card>
 
-      <ConfirmDialog
-        isOpen={Boolean(pendingAction)}
-        onClose={() => setPendingAction(null)}
-        onConfirm={executeAction}
-        title={pendingAction?.type === 'delete' ? 'Delete user' : 'Update user status'}
-        message={
-          pendingAction?.type === 'delete'
-            ? `Are you sure you want to delete ${pendingAction?.user?.name}? This action cannot be undone.`
-            : `Do you want to ${pendingAction?.user?.status === 'Active' ? 'deactivate' : 'activate'} ${pendingAction?.user?.name}?`
-        }
-        confirmText={pendingAction?.type === 'delete' ? 'Delete' : 'Confirm'}
-        destructive={pendingAction?.type === 'delete'}
-      />
+      {}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <UsersIcon className="h-5 w-5" />
+            Users ({filteredUsers.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {loading ? <div className="text-center py-12 text-muted-foreground">Loading users...</div> : filteredUsers.length === 0 ? <div className="text-center py-12">
+              <UsersIcon className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+              <p className="text-muted-foreground">No users found</p>
+            </div> : <>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Registered</TableHead>
+                      <TableHead className="w-25">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedUsers.map(user => <TableRow key={user.id}>
+                        <TableCell className="font-medium">{user.name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>{user.role}</TableCell>
+                        <TableCell>
+                          <Badge variant={user.status === 'Active' ? 'default' : user.status === 'Pending' ? 'secondary' : 'outline'}>
+                            {user.status}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{user.registeredAt || 'N/A'}</TableCell>
+                        <TableCell>
+                          <div className="flex flex-col gap-2 min-[420px]:flex-row min-[420px]:flex-wrap">
+                            <Link to={`/admin/users/${user.id}`}>
+                              <Button variant="ghost" size="sm" className="w-full min-[420px]:w-auto">
+                                View
+                              </Button>
+                            </Link>
+                            <Button variant="outline" size="sm" onClick={() => openEditUserModal(user)} className="w-full min-[420px]:w-auto">
+                              Edit
+                            </Button>
+                            <Button variant="destructive" size="sm" onClick={() => handleDeleteUser(user)} className="w-full min-[420px]:w-auto">
+                              Delete
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>)}
+                  </TableBody>
+                </Table>
+              </div>
 
-      <Modal isOpen={isModalOpen} onClose={() => {
-        setIsModalOpen(false)
-        setFormError('')
-      }} title={editingUser ? 'Edit User' : 'Add New User'} size="md">
+              {}
+              <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-muted-foreground">
+                  Showing {filteredUsers.length ? (currentPage - 1) * rowsPerPage + 1 : 0}–
+                  {Math.min(currentPage * rowsPerPage, filteredUsers.length)} of {filteredUsers.length}
+                </p>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))} disabled={currentPage === 1} className="w-full sm:w-auto">
+                    Previous
+                  </Button>
+                  <span className="text-center text-sm text-muted-foreground sm:text-left">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <Button variant="outline" size="sm" onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))} disabled={currentPage === totalPages} className="w-full sm:w-auto">
+                    Next
+                  </Button>
+                </div>
+              </div>
+            </>}
+        </CardContent>
+      </Card>
+
+      <Modal isOpen={isModalOpen} onClose={closeModal} title={modalMode === 'edit' ? 'Edit User' : 'Add User'} size="lg">
         <div className="space-y-4">
-          {formError && (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-4 flex items-center gap-3">
-              <span className="text-red-600 text-lg">✕</span>
-              <p className="text-sm font-medium text-red-700">{formError}</p>
-            </div>
-          )}
-
-          <div>
-            <label className="block text-sm font-medium text-slate-900 mb-1">Full Name *</label>
-            <input
-              type="text"
-              name="name"
-              value={formData.name}
-              onChange={handleFormChange}
-              placeholder="e.g., John Doe"
-              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-            />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input label="Full Name" name="name" value={formData.name} onChange={handleFormChange} placeholder="Jane Doe" required />
+            <Input label="Email" name="email" type="email" value={formData.email} onChange={handleFormChange} placeholder="jane@example.com" required />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-slate-900 mb-1">Email *</label>
-            <input
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleFormChange}
-              placeholder="e.g., john@example.com"
-              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-900 mb-1">Phone *</label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleFormChange}
-              placeholder="e.g., +1 (415) 555-0101"
-              className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 placeholder:text-slate-500 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input label="Phone" name="phone" value={formData.phone} onChange={handleFormChange} placeholder="(555) 123-4567" required />
             <div>
-              <label className="block text-sm font-medium text-slate-900 mb-1">Role</label>
-              <select
-                name="role"
-                value={formData.role}
-                onChange={handleFormChange}
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-              >
+              <label className="mb-2.5 block text-sm font-semibold text-slate-200">Role</label>
+              <select name="role" value={formData.role} onChange={handleFormChange} className="w-full rounded-xl border border-white/15 bg-slate-900/80 px-4 py-3 text-sm text-white outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-400/30">
                 <option value="User">User</option>
+                <option value="Admin">Admin</option>
                 <option value="Manager">Manager</option>
                 <option value="Support">Support</option>
-                <option value="Admin">Admin</option>
               </select>
             </div>
+          </div>
 
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="block text-sm font-medium text-slate-900 mb-1">Status</label>
-              <select
-                name="status"
-                value={formData.status}
-                onChange={handleFormChange}
-                className="w-full rounded-lg border border-slate-300 bg-white px-4 py-2 text-slate-900 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-              >
+              <label className="mb-2.5 block text-sm font-semibold text-slate-200">Status</label>
+              <select name="status" value={formData.status} onChange={handleFormChange} className="w-full rounded-xl border border-white/15 bg-slate-900/80 px-4 py-3 text-sm text-white outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-400/30">
                 <option value="Active">Active</option>
                 <option value="Inactive">Inactive</option>
                 <option value="Pending">Pending</option>
               </select>
             </div>
+
+            {modalMode === 'add' && <Input label="Temporary Password" name="password" type="text" value={formData.password} onChange={handleFormChange} placeholder="TempPass123!" />}
           </div>
 
-          <div className="flex gap-3 justify-end pt-4 border-t border-slate-200">
-            <Button type="button" variant="secondary" onClick={() => {
-              setIsModalOpen(false)
-              setFormError('')
-            }}>
+          {formError && <div className="rounded-md border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+              {formError}
+            </div>}
+
+          <div className="flex flex-col-reverse gap-3 pt-2 sm:flex-row sm:justify-end">
+            <Button variant="outline" onClick={closeModal} className="w-full sm:w-auto">
               Cancel
             </Button>
-            <Button type="button" onClick={handleSaveUser} className="bg-blue-600 hover:bg-blue-700">
-              {editingUser ? 'Update User' : 'Add User'}
+            <Button onClick={handleSaveUser} className="w-full sm:w-auto">
+              {modalMode === 'edit' ? 'Save Changes' : 'Create User'}
             </Button>
           </div>
         </div>
       </Modal>
-    </div>
-  )
+    </div>;
 }

@@ -1,102 +1,86 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import { isValidEmail } from '../utils/validation'
-import authService from '../services/authService'
-
+import { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
+import { isValidEmail } from '../utils/validation';
+import authService from '../services/authService';
 export default function Home() {
-  const { login } = useAuth()
-  const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [isAdmin, setIsAdmin] = useState(false)
-
-  const features = [
-    {
-      icon: '�',
-      title: 'Create Your Account',
-      description: 'Register with your email and create a secure password to get started',
-    },
-    {
-      icon: '🔓',
-      title: 'Login Anytime',
-      description: 'Sign in with your credentials to access your personal dashboard',
-    },
-    {
-      icon: '👤',
-      title: 'Manage Profile',
-      description: 'Update your profile information and change your password anytime',
-    },
-    {
-      icon: '⚙️',
-      title: 'Customizable Settings',
-      description: 'Personalize your account with your preferred settings',
-    },
-    {
-      icon: '🛡️',
-      title: 'Secure & Private',
-      description: 'Your data is encrypted and protected with industry-standard security',
-    },
-  ]
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-
+  const {
+    login
+  } = useAuth();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const features = [{
+    icon: '�',
+    title: 'Create Your Account',
+    description: 'Register with your email and create a secure password to get started'
+  }, {
+    icon: '🔓',
+    title: 'Login Anytime',
+    description: 'Sign in with your credentials to access your personal dashboard'
+  }, {
+    icon: '👤',
+    title: 'Manage Profile',
+    description: 'Update your profile information and change your password anytime'
+  }, {
+    icon: '⚙️',
+    title: 'Customizable Settings',
+    description: 'Personalize your account with your preferred settings'
+  }, {
+    icon: '🛡️',
+    title: 'Secure & Private',
+    description: 'Your data is encrypted and protected with industry-standard security'
+  }];
+  const handleSubmit = async e => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
     if (!email || !password) {
-      setError('Please fill in all fields')
-      setLoading(false)
-      return
+      setError('Please fill in all fields');
+      setLoading(false);
+      return;
     }
-
     if (!isValidEmail(email)) {
-      setError('Please enter a valid email')
-      setLoading(false)
-      return
+      setError('Please enter a valid email');
+      setLoading(false);
+      return;
     }
-
     if (password.length < 6) {
-      setError('Password must be at least 6 characters')
-      setLoading(false)
-      return
+      setError('Password must be at least 6 characters');
+      setLoading(false);
+      return;
     }
-
     try {
-      // Call backend login API
-      const response = await authService.login({ email, password })
-      const { token, user } = response.data
-
-      // Store JWT token for future API calls
-      localStorage.setItem('authToken', token)
-
-      // Prepare user data with role
+      const response = await authService.login({
+        email,
+        password
+      });
+      const {
+        token,
+        user
+      } = response.data;
+      localStorage.setItem('authToken', token);
       const userData = {
         ...user,
         id: user.id || user._id,
         name: user.name || user.fullName || email.split('@')[0],
         role: isAdmin ? 'admin' : 'user',
-        avatar: (user.name || email).charAt(0).toUpperCase(),
-      }
-
-      // Update auth context
-      login(userData)
-
-      // Navigate based on role
-      navigate(isAdmin ? '/admin' : '/dashboard')
+        avatar: (user.name || email).charAt(0).toUpperCase()
+      };
+      login(userData);
+      navigate(isAdmin ? '/admin' : '/dashboard');
     } catch (err) {
-      console.error('Login error:', err)
-      setError(err.message || 'Login failed. Please check your credentials.')
+      console.error('Login error:', err);
+      setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
-
-  return (
-    <div className="flex min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(124,58,237,0.25),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.20),_transparent_25%),linear-gradient(180deg,_#020817_0%,_#0f172a_100%)]">
+  };
+  return <div className="flex min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(124,58,237,0.25),_transparent_30%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.20),_transparent_25%),linear-gradient(180deg,_#020817_0%,_#0f172a_100%)]">
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-[linear-gradient(135deg,_rgba(124,58,237,0.96),_rgba(59,130,246,0.9),_rgba(15,23,42,0.95))] px-12 py-16 text-white shadow-2xl shadow-violet-900/20">
         <div>
           <div className="mb-8 flex items-center gap-3">
@@ -114,8 +98,7 @@ export default function Home() {
           </p>
 
           <div className="space-y-8">
-            {features.map((feature, idx) => (
-              <div key={idx} className="flex gap-4">
+            {features.map((feature, idx) => <div key={idx} className="flex gap-4">
                 <div className="shrink-0">
                   <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 backdrop-blur-sm border border-white/10">
                     {feature.icon}
@@ -125,8 +108,7 @@ export default function Home() {
                   <h3 className="font-semibold text-base">{feature.title}</h3>
                   <p className="mt-1 text-sm text-violet-100/80">{feature.description}</p>
                 </div>
-              </div>
-            ))}
+              </div>)}
           </div>
         </div>
 
@@ -160,24 +142,15 @@ export default function Home() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {error && (
-              <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4">
+            {error && <div className="rounded-xl border border-red-500/30 bg-red-500/10 p-4">
                 <p className="text-sm text-red-200">{error}</p>
-              </div>
-            )}
+              </div>}
 
             <div>
               <label htmlFor="email" className="mb-2 block text-sm font-medium text-slate-200">
                 Email address
               </label>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Enter your email"
-                className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-slate-100 placeholder:text-slate-400 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-500/20"
-              />
+              <input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="Enter your email" className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 text-slate-100 placeholder:text-slate-400 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-500/20" />
             </div>
 
             <div>
@@ -185,19 +158,8 @@ export default function Home() {
                 Password
               </label>
               <div className="relative">
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 pr-12 text-slate-100 placeholder:text-slate-400 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-500/20"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
-                >
+                <input id="password" type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="Enter your password" className="w-full rounded-xl border border-white/10 bg-slate-950/70 px-4 py-3 pr-12 text-slate-100 placeholder:text-slate-400 outline-none transition focus:border-violet-400 focus:ring-2 focus:ring-violet-500/20" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white">
                   {showPassword ? '👁️' : '👁️‍🗨️'}
                 </button>
               </div>
@@ -209,12 +171,7 @@ export default function Home() {
                 <span className="text-sm text-slate-300">Remember me</span>
               </label>
               <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  checked={isAdmin}
-                  onChange={(e) => setIsAdmin(e.target.checked)}
-                  className="h-4 w-4 rounded border-slate-400 bg-slate-950"
-                />
+                <input type="checkbox" checked={isAdmin} onChange={e => setIsAdmin(e.target.checked)} className="h-4 w-4 rounded border-slate-400 bg-slate-950" />
                 <span className="text-sm text-slate-300">Sign in as Admin</span>
               </label>
             </div>
@@ -225,11 +182,7 @@ export default function Home() {
               </Link>
             </div>
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full rounded-xl bg-[linear-gradient(135deg,#8b5cf6,#3b82f6)] px-6 py-3 font-semibold text-white shadow-lg shadow-violet-500/20 transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
+            <button type="submit" disabled={loading} className="w-full rounded-xl bg-[linear-gradient(135deg,#8b5cf6,#3b82f6)] px-6 py-3 font-semibold text-white shadow-lg shadow-violet-500/20 transition hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed">
               {loading ? 'Signing in...' : 'Sign In'}
             </button>
           </form>
@@ -244,6 +197,5 @@ export default function Home() {
           </div>
         </div>
       </div>
-    </div>
-  )
+    </div>;
 }

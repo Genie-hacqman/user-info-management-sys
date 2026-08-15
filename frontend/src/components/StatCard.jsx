@@ -1,4 +1,9 @@
-export default function StatCard({ title, value, icon, color = 'blue' }) {
+export default function StatCard({
+  title,
+  value,
+  icon,
+  color = 'blue'
+}) {
   const colorConfigs = {
     blue: {
       bg: 'bg-[linear-gradient(135deg,_rgba(59,130,246,0.15),_rgba(37,99,235,0.08))]',
@@ -49,23 +54,17 @@ export default function StatCard({ title, value, icon, color = 'blue' }) {
       title: 'text-pink-300',
       glow: 'shadow-[0_0_20px_rgba(236,72,153,0.25)]'
     }
-  }
-
-  const config = colorConfigs[color] || colorConfigs.blue
-
-  return (
-    <div className={`group rounded-2xl border-2 ${config.border} ${config.bg} p-6 transition duration-300 hover:${config.border.replace('/', '-')} hover:${config.glow.replace('/', '-')} cursor-pointer`}>
+  };
+  const config = colorConfigs[color] || colorConfigs.blue;
+  return <div className={`group rounded-2xl border-2 ${config.border} ${config.bg} p-6 transition duration-300 hover:${config.border.replace('/', '-')} hover:${config.glow.replace('/', '-')} cursor-pointer`}>
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <p className={`text-xs font-bold ${config.title} uppercase tracking-wider`}>{title}</p>
           <p className="mt-3 text-4xl font-bold text-white group-hover:text-blue-100 transition">{value}</p>
         </div>
-        {icon && (
-          <div className={`rounded-xl ${config.badge} p-4 text-2xl group-hover:scale-110 transition`}>
+        {icon && <div className={`rounded-xl ${config.badge} p-4 text-2xl group-hover:scale-110 transition`}>
             {icon}
-          </div>
-        )}
+          </div>}
       </div>
-    </div>
-  )
+    </div>;
 }

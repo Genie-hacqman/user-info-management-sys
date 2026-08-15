@@ -1,246 +1,182 @@
-import { useEffect, useMemo, useState } from 'react'
-import PageHeader from '../../components/PageHeader'
-import userService from '../../services/userService'
-
+import { useEffect, useMemo, useState } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import userService from '@/services/userService';
+import { Activity, AlertCircle, CheckCircle, LogIn, UserPlus } from 'lucide-react';
 export default function SystemActivityPage() {
-  const [refreshTick, setRefreshTick] = useState(0)
-  const [users, setUsers] = useState([])
-
+  const [refreshTick, setRefreshTick] = useState(0);
+  const [users, setUsers] = useState([]);
   useEffect(() => {
     const loadUsers = async () => {
       try {
-        const { data } = await userService.getUsers()
-        setUsers(data || [])
+        const response = await userService.getAllUsers();
+        const userData = Array.isArray(response) ? response : response.data || [];
+        setUsers(userData);
       } catch (error) {
-        console.error('Failed to load activity users:', error)
-        setUsers([])
+        console.error('Failed to load activity users:', error);
+        setUsers([]);
       }
-    }
-
+    };
     const handleChange = () => {
-      setRefreshTick((value) => value + 1)
-      loadUsers()
-    }
-
-    loadUsers()
-    window.addEventListener('sly-user-data-updated', handleChange)
-
-    return () => window.removeEventListener('sly-user-data-updated', handleChange)
-  }, [refreshTick])
-
+      setRefreshTick(value => value + 1);
+      loadUsers();
+    };
+    loadUsers();
+    window.addEventListener('sly-user-data-updated', handleChange);
+    return () => window.removeEventListener('sly-user-data-updated', handleChange);
+  }, [refreshTick]);
   const activityLog = useMemo(() => {
-    const events = []
-
-    users.forEach((user) => {
-      const name = user.name || 'User'
-      const email = user.email || 'unknown@example.com'
-
+    const events = [];
+    users.forEach(user => {
+      const name = user.name || 'User';
+      const email = user.email || 'unknown@example.com';
       if (user.registeredAt) {
         events.push({
           type: 'User Registration',
           user: name,
           email,
           time: user.registeredAt,
-          icon: '📝',
-          severity: 'info',
-        })
+          icon: UserPlus,
+          severity: 'info'
+        });
       }
-
       if (user.lastLogin) {
         events.push({
           type: 'User Login',
           user: name,
           email,
           time: user.lastLogin,
-          icon: '🔓',
-          severity: 'success',
-        })
+          icon: LogIn,
+          severity: 'success'
+        });
       }
-
-      if (user.updatedAt && String(user.updatedAt) !== String(user.createdAt || '')) {
-        events.push({
-          type: 'User Profile Updated',
-          user: name,
-          email,
-          time: user.updatedAt,
-          icon: '✏️',
-          severity: 'info',
-        })
-      }
-
-      if (user.lastPasswordResetByAdmin) {
-        events.push({
-          type: 'Password Reset by Admin',
-          user: name,
-          email,
-          time: user.lastPasswordResetByAdmin,
-          icon: '🔐',
-          severity: 'info',
-        })
-      }
-
       if (user.status) {
         events.push({
-          type: user.status === 'Active' ? 'User Account Activated' : 'User Account Updated',
+          type: user.status === 'Active' ? 'User Account Activated' : 'Account Status Changed',
           user: name,
           email,
           time: user.updatedAt || user.lastLogin || user.createdAt || new Date().toISOString(),
-          icon: user.status === 'Active' ? '✅' : '🚫',
-          severity: user.status === 'Active' ? 'success' : 'warning',
-        })
+          icon: user.status === 'Active' ? CheckCircle : AlertCircle,
+          severity: user.status === 'Active' ? 'success' : 'warning'
+        });
       }
-    })
-
-    return events
-      .sort((a, b) => new Date(b.time) - new Date(a.time))
-      .slice(0, 12)
-      .map((event) => ({
-        ...event,
-        timeLabel: new Date(event.time).toLocaleString('en-US', {
-          month: 'short',
-          day: 'numeric',
-          hour: 'numeric',
-          minute: '2-digit',
-        }),
-      }))
-  }, [users])
-
+    });
+    return events.sort((a, b) => new Date(b.time) - new Date(a.time)).slice(0, 20).map(event => ({
+      ...event,
+      timeLabel: new Date(event.time).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit'
+      })
+    }));
+  }, [users]);
   const activityStats = useMemo(() => {
-    const total = activityLog.length
-    const loginAttempts = activityLog.filter((item) => item.type === 'User Login').length
-    const securityAlerts = activityLog.filter((item) => item.severity === 'warning').length
-    const newRegistrations = activityLog.filter((item) => item.type === 'User Registration').length
-
-    return [
-      { label: 'Total Activities', value: total.toString(), icon: '📊' },
-      { label: 'Logins', value: loginAttempts.toString(), icon: '🔓' },
-      { label: 'Warnings', value: securityAlerts.toString(), icon: '⚠️' },
-      { label: 'New Registrations', value: newRegistrations.toString(), icon: '🆕' },
-    ]
-  }, [activityLog])
-
-  return (
-    <div className="space-y-8">
-      <PageHeader
-        pretitle="🔍 Monitoring"
-        title="System Activity Log"
-        description="Real-time system activity, user actions, and security events."
-      />
-      <div className="rounded-xl border border-slate-700 bg-slate-800 p-6 shadow-md">
-        <div className="grid gap-4 md:grid-cols-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-300">Filter by Type</label>
-            <select className="mt-2 w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-2 text-slate-100 focus:border-amber-500 focus:ring-amber-500">
-              <option>All Activities</option>
-              <option>User Registration</option>
-              <option>Login Attempts</option>
-              <option>Profile Updates</option>
-              <option>Security Events</option>
-              <option>System Events</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-300">Severity Level</label>
-            <select className="mt-2 w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-2 text-slate-100 focus:border-amber-500 focus:ring-amber-500">
-              <option>All Levels</option>
-              <option>Info</option>
-              <option>Warning</option>
-              <option>Alert</option>
-              <option>Success</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-300">Time Range</label>
-            <select className="mt-2 w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-2 text-slate-100 focus:border-amber-500 focus:ring-amber-500">
-              <option>Last Hour</option>
-              <option>Last 24 Hours</option>
-              <option>Last 7 Days</option>
-              <option>Last 30 Days</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-slate-300">Search User</label>
-            <input
-              type="text"
-              placeholder="Search by name or email..."
-              className="mt-2 w-full rounded-lg border border-slate-600 bg-slate-700 px-4 py-2 text-slate-100 placeholder-slate-500 focus:border-amber-500 focus:ring-amber-500"
-            />
-          </div>
-        </div>
+    const total = activityLog.length;
+    const logins = activityLog.filter(item => item.type === 'User Login').length;
+    const warnings = activityLog.filter(item => item.severity === 'warning').length;
+    const registrations = activityLog.filter(item => item.type === 'User Registration').length;
+    return [{
+      label: 'Total Activities',
+      value: total,
+      icon: Activity
+    }, {
+      label: 'Login Attempts',
+      value: logins,
+      icon: LogIn
+    }, {
+      label: 'Alerts',
+      value: warnings,
+      icon: AlertCircle
+    }, {
+      label: 'New Registrations',
+      value: registrations,
+      icon: UserPlus
+    }];
+  }, [activityLog]);
+  return <div className="space-y-8">
+      {}
+      <div>
+        <h1 className="text-4xl font-bold text-white">System Activity</h1>
+        <p className="mt-2 text-slate-300">Real-time system activity and user events</p>
       </div>
-      <div className="space-y-3">
-        {activityLog.length > 0 ? activityLog.map((activity, idx) => {
-          const severityColors = {
-            info: 'border-blue-500/30 bg-blue-900/20 text-blue-300',
-            warning: 'border-amber-500/30 bg-amber-900/20 text-amber-300',
-            alert: 'border-red-500/30 bg-red-900/20 text-red-300',
-            success: 'border-green-500/30 bg-green-900/20 text-green-300',
-          }
 
-          return (
-            <div
-              key={`${activity.type}-${activity.email}-${idx}`}
-              className={`rounded-xl border-l-4 ${severityColors[activity.severity]} border border-slate-700 bg-slate-800 p-6 shadow-md hover:shadow-lg transition`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex items-start gap-4">
-                  <div className="text-3xl">{activity.icon}</div>
-                  <div>
-                    <h3 className="text-lg font-bold text-white">{activity.type}</h3>
-                    <div className="mt-2 space-y-1">
-                      <p className="text-sm text-slate-300">
-                        <span className="font-medium">User:</span> {activity.user}
-                      </p>
-                      <p className="text-sm text-slate-400">{activity.email}</p>
+      {}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        {activityStats.map((stat, idx) => {
+        const Icon = stat.icon;
+        return <Card key={idx}>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">{stat.label}</CardTitle>
+                <Icon className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{stat.value}</div>
+              </CardContent>
+            </Card>;
+      })}
+      </div>
+
+      {}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Activity className="h-5 w-5" />
+            Recent Activities
+          </CardTitle>
+          <CardDescription>Latest {activityLog.length} system activities</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {activityLog.length === 0 ? <div className="text-center py-12">
+              <Activity className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+              <p className="text-muted-foreground">No recent activity</p>
+            </div> : <div className="space-y-4">
+              {activityLog.map((activity, idx) => {
+            const Icon = activity.icon;
+            const severityConfig = {
+              info: {
+                bg: 'bg-blue-50',
+                border: 'border-blue-200',
+                badge: 'secondary'
+              },
+              warning: {
+                bg: 'bg-amber-50',
+                border: 'border-amber-200',
+                badge: 'destructive'
+              },
+              alert: {
+                bg: 'bg-red-50',
+                border: 'border-red-200',
+                badge: 'destructive'
+              },
+              success: {
+                bg: 'bg-green-50',
+                border: 'border-green-200',
+                badge: 'default'
+              }
+            };
+            const config = severityConfig[activity.severity];
+            return <div key={`${activity.type}-${activity.email}-${idx}`} className={`rounded-lg border ${config.border} ${config.bg} p-4`}>
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start gap-3 flex-1">
+                        <Icon className="h-5 w-5 mt-0.5 text-muted-foreground shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold">{activity.type}</p>
+                          <p className="text-sm text-muted-foreground mt-1">{activity.user}</p>
+                          <p className="text-xs text-muted-foreground">{activity.email}</p>
+                        </div>
+                      </div>
+                      <div className="text-right shrink-0">
+                        <Badge variant={config.badge} className="capitalize">
+                          {activity.severity}
+                        </Badge>
+                        <p className="text-xs text-muted-foreground mt-2">{activity.timeLabel}</p>
+                      </div>
                     </div>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-medium text-slate-400">{activity.timeLabel}</p>
-                  <span
-                    className={`mt-2 inline-block rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide ${
-                      activity.severity === 'info'
-                        ? 'bg-blue-500/20 text-blue-300'
-                        : activity.severity === 'warning'
-                          ? 'bg-amber-500/20 text-amber-300'
-                          : activity.severity === 'alert'
-                            ? 'bg-red-500/20 text-red-300'
-                            : 'bg-green-500/20 text-green-300'
-                    }`}
-                  >
-                    {activity.severity}
-                  </span>
-                </div>
-              </div>
-            </div>
-          )
-        }) : (
-          <div className="rounded-xl border border-dashed border-slate-700 bg-slate-800/50 px-6 py-12 text-center text-sm text-slate-400">
-            No recent system activity yet.
-          </div>
-        )}
-      </div>
-      <div className="text-center">
-        <button className="rounded-lg border border-slate-600 px-6 py-3 font-medium text-amber-400 hover:bg-slate-800 transition">
-          Load More Activities
-        </button>
-      </div>
-      <div className="grid gap-4 md:grid-cols-4">
-        {activityStats.map((stat, idx) => (
-          <div key={idx} className="rounded-xl border border-slate-700 bg-slate-800 p-6 shadow-md">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-slate-400">{stat.label}</p>
-                <p className="mt-2 text-3xl font-bold text-white">{stat.value}</p>
-              </div>
-              <div className="text-3xl">{stat.icon}</div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
+                  </div>;
+          })}
+            </div>}
+        </CardContent>
+      </Card>
+    </div>;
 }

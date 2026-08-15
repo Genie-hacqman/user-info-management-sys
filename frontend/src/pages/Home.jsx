@@ -1,71 +1,89 @@
-import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
-import { isValidEmail } from '../utils/validation'
-import authService from '../services/authService'
-
+import { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useAuth } from '@/context/AuthContext';
+import { isValidEmail } from '@/utils/validation';
+import authService from '@/services/authService';
+import userService from '@/services/userService';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Eye, EyeOff, Lock, Mail, Shield, Zap, Users } from 'lucide-react';
 export default function Home() {
-  const { login } = useAuth()
-  const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [showPassword, setShowPassword] = useState(false)
-  const [isAdmin, setIsAdmin] = useState(false)
-
-  const features = [
-    {
-      number: '01',
-      title: 'Create Account',
-      description: 'Register with your email to get started in seconds',
-    },
-    {
-      number: '02',
-      title: 'Secure Login',
-      description: 'Access your account with encrypted credentials',
-    },
-    {
-      number: '03',
-      title: 'Manage Profile',
-      description: 'Update information and settings anytime',
-    },
-    {
-      number: '04',
-      title: 'Stay Secure',
-      description: 'Enterprise-grade security for your data',
-    },
-  ]
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setError('')
-    setLoading(true)
-
+  const {
+    login
+  } = useAuth();
+  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [totalUsers, setTotalUsers] = useState(0);
+  useEffect(() => {
+    const loadUserCount = async () => {
+      const token = localStorage.getItem('authToken');
+      if (!token) {
+        setTotalUsers(0);
+        return;
+      }
+      try {
+        const response = await userService.getUsers();
+        const users = Array.isArray(response) ? response : response.data || [];
+        setTotalUsers(users.length);
+      } catch (error) {
+        console.error('Failed to load user count:', error);
+        setTotalUsers(0);
+      }
+    };
+    loadUserCount();
+  }, []);
+  const features = [{
+    icon: Users,
+    title: 'Create Account',
+    description: 'Register with your email to get started in seconds'
+  }, {
+    icon: Lock,
+    title: 'Secure Login',
+    description: 'Access your account with encrypted credentials'
+  }, {
+    icon: Shield,
+    title: 'Manage Profile',
+    description: 'Update information and settings anytime'
+  }, {
+    icon: Zap,
+    title: 'Stay Secure',
+    description: 'Enterprise-grade security for your data'
+  }];
+  const handleSubmit = async e => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
     if (!email || !password) {
-      setError('Please fill in all fields')
-      setLoading(false)
-      return
+      setError('Please fill in all fields');
+      setLoading(false);
+      return;
     }
-
     if (!isValidEmail(email)) {
-      setError('Please enter a valid email')
-      setLoading(false)
-      return
+      setError('Please enter a valid email');
+      setLoading(false);
+      return;
     }
-
     if (password.length < 6) {
-      setError('Password must be at least 6 characters')
-      setLoading(false)
-      return
+      setError('Password must be at least 6 characters');
+      setLoading(false);
+      return;
     }
-
     try {
-      const response = await authService.login({ email, password })
-      const { token, user } = response.data
-
-      localStorage.setItem('authToken', token)
-
+      const response = await authService.login({
+        email,
+        password
+      });
+      const {
+        token,
+        user
+      } = response.data;
+      localStorage.setItem('authToken', token);
       const userData = {
         ...user,
         id: user.id || user._id,
@@ -73,189 +91,151 @@ export default function Home() {
         email: user.email || email,
         role: isAdmin ? 'admin' : 'user',
         avatar: (user.name || email).charAt(0).toUpperCase(),
-        lastLogin: new Date().toISOString(),
-      }
-
-      login(userData)
-      navigate(isAdmin ? '/admin' : '/dashboard')
+        lastLogin: new Date().toISOString()
+      };
+      login(userData);
+      navigate(isAdmin ? '/admin' : '/dashboard');
     } catch (err) {
-      console.error('Login error:', err)
-      setError(err.message || 'Login failed. Please check your credentials.')
+      console.error('Login error:', err);
+      setError(err.message || 'Login failed. Please check your credentials.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
-
-  return (
-    <div className="min-h-screen bg-linear-to-br from-slate-950 via-slate-900 to-slate-950">
-      {/* Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-violet-500/10 rounded-full blur-3xl"></div>
-        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl"></div>
-      </div>
-
-      <div className="relative flex min-h-screen">
-        {/* Left Section - Features */}
-        <div className="hidden lg:flex lg:w-1/2 flex-col justify-between p-16">
+  };
+  return <div className="min-h-screen bg-linear-to-br from-blue-50 to-indigo-50">
+      <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen">
+        {}
+        <div className="hidden lg:flex flex-col justify-between p-12 bg-linear-to-br from-blue-600 to-indigo-700 text-white">
           <div>
-            <div className="mb-16">
-              <div className="inline-flex items-center gap-3 mb-6">
-                <div className="p-2 bg-linear-to-br from-violet-500 to-blue-500 rounded-lg">
-                  <span className="text-2xl">🔐</span>
+            <div className="mb-12">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                  <Lock className="h-6 w-6" />
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-white">UserHub</h1>
-                  <p className="text-sm text-slate-400">Professional Management System</p>
+                  <h1 className="text-3xl font-bold">SLY</h1>
+                  <p className="text-sm text-blue-100">User Management System</p>
                 </div>
               </div>
             </div>
 
-            <div className="mb-16">
-              <p className="text-lg text-slate-300 leading-relaxed max-w-sm">
+            <div className="mb-12">
+              <p className="text-lg text-blue-100 leading-relaxed max-w-sm">
                 Streamline your user management with a modern, secure, and intuitive platform designed for professionals.
               </p>
             </div>
 
-            <div className="space-y-12">
-              {features.map((feature, idx) => (
-                <div key={idx} className="flex gap-6">
-                  <div className="shrink-0">
-                    <div className="flex items-center justify-center w-12 h-12 rounded-lg bg-linear-to-br from-violet-500/20 to-blue-500/20 border border-violet-500/30">
-                      <span className="text-sm font-bold text-violet-300">{feature.number}</span>
+            <div className="space-y-6">
+              {features.map((feature, idx) => {
+              const Icon = feature.icon;
+              return <div key={idx} className="flex gap-4 group">
+                    <div className="shrink-0 mt-1">
+                      <Icon className="h-5 w-5 text-blue-200 group-hover:text-white transition" />
                     </div>
-                  </div>
-                  <div>
-                    <h3 className="text-base font-semibold text-white mb-1">{feature.title}</h3>
-                    <p className="text-sm text-slate-400">{feature.description}</p>
-                  </div>
-                </div>
-              ))}
+                    <div>
+                      <h3 className="font-semibold text-white mb-1">{feature.title}</h3>
+                      <p className="text-sm text-blue-100">{feature.description}</p>
+                    </div>
+                  </div>;
+            })}
             </div>
           </div>
 
-          <div className="text-sm text-slate-500">
-            <p>© 2024 UserHub. All rights reserved.</p>
+          <div className="text-sm text-blue-200">
+            <p>© 2024 SLY. All rights reserved.</p>
           </div>
         </div>
 
-        {/* Right Section - Login Form */}
-        <div className="w-full lg:w-1/2 flex items-center justify-center px-6 py-12">
-          <div className="w-full max-w-sm">
-            {/* Form Header */}
-            <div className="mb-10">
-              <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>
-              <p className="text-slate-400">Sign in to access your account</p>
-            </div>
-
-            {/* Login Form */}
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Error Message */}
-              {error && (
-                <div className="p-4 rounded-lg bg-red-500/10 border border-red-500/20">
-                  <p className="text-sm text-red-300">{error}</p>
+        {}
+        <div className="flex items-center justify-center px-6 py-12">
+          <div className="w-full max-w-md">
+            <Card>
+              <CardHeader className="space-y-3">
+                <CardTitle className="text-3xl">Welcome Back</CardTitle>
+                <CardDescription>Sign in to access your account</CardDescription>
+                <div className="pt-2 flex items-center gap-2 text-sm text-blue-600 font-medium">
+                  <Users className="h-4 w-4" />
+                  <span>{totalUsers} people have joined us</span>
                 </div>
-              )}
+              </CardHeader>
+              <CardContent>
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  {}
+                  {error && <div className="p-3 rounded-lg bg-red-50 border border-red-200">
+                      <p className="text-sm text-red-700">{error}</p>
+                    </div>}
 
-              {/* Email Input */}
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-slate-200 mb-2">
-                  Email Address
-                </label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
-                  className="w-full px-4 py-3 rounded-lg border border-slate-700 bg-slate-800/50 text-white placeholder:text-slate-500 outline-none transition duration-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
-                />
-              </div>
+                  {}
+                  <div className="space-y-2">
+                    <label htmlFor="email" className="text-sm font-medium">
+                      Email Address
+                    </label>
+                    <div className="relative">
+                      <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="pl-9" />
+                    </div>
+                  </div>
 
-              {/* Password Input */}
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-slate-200 mb-2">
-                  Password
-                </label>
-                <div className="relative">
-                  <input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="w-full px-4 py-3 rounded-lg border border-slate-700 bg-slate-800/50 text-white placeholder:text-slate-500 outline-none transition duration-200 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-300 transition"
-                  >
-                    {showPassword ? '👁️' : '👁️‍🗨️'}
-                  </button>
-                </div>
-              </div>
+                  {}
+                  <div className="space-y-2">
+                    <label htmlFor="password" className="text-sm font-medium">
+                      Password
+                    </label>
+                    <div className="relative">
+                      <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input id="password" type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="pl-9" />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3 top-3 text-muted-foreground hover:text-foreground transition">
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </button>
+                    </div>
+                  </div>
 
-              {/* Checkboxes */}
-              <div className="space-y-3">
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    className="w-4 h-4 rounded border-slate-600 bg-slate-800 cursor-pointer accent-violet-500"
-                  />
-                  <span className="text-sm text-slate-300 group-hover:text-slate-200 transition">Remember me</span>
-                </label>
-                <label className="flex items-center gap-3 cursor-pointer group">
-                  <input
-                    type="checkbox"
-                    checked={isAdmin}
-                    onChange={(e) => setIsAdmin(e.target.checked)}
-                    className="w-4 h-4 rounded border-slate-600 bg-slate-800 cursor-pointer accent-violet-500"
-                  />
-                  <span className="text-sm text-slate-300 group-hover:text-slate-200 transition">Sign in as Admin</span>
-                </label>
-              </div>
+                  {}
+                  <div className="space-y-3">
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <input type="checkbox" className="w-4 h-4 rounded border-gray-300" />
+                      <span className="text-sm text-muted-foreground group-hover:text-foreground transition">Remember me</span>
+                    </label>
+                    <label className="flex items-center gap-3 cursor-pointer group">
+                      <input type="checkbox" checked={isAdmin} onChange={e => setIsAdmin(e.target.checked)} className="w-4 h-4 rounded border-gray-300" />
+                      <span className="text-sm text-muted-foreground group-hover:text-foreground transition">Sign in as Admin</span>
+                    </label>
+                  </div>
 
-              {/* Forgot Password */}
-              <div className="text-right">
-                <Link to="/forgot-password" className="text-sm text-violet-400 hover:text-violet-300 transition font-medium">
-                  Forgot password?
-                </Link>
-              </div>
+                  {}
+                  <div className="text-right">
+                    <Link to="/forgot-password" className="text-sm text-blue-600 hover:text-blue-700 transition font-medium">
+                      Forgot password?
+                    </Link>
+                  </div>
 
-              {/* Sign In Button */}
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-3 px-4 rounded-lg bg-linear-to-r from-violet-600 to-blue-600 hover:from-violet-500 hover:to-blue-500 text-white font-semibold transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl hover:shadow-violet-500/20"
-              >
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
-                    Signing in...
-                  </span>
-                ) : (
-                  'Sign In'
-                )}
-              </button>
+                  {}
+                  <Button type="submit" disabled={loading} className="w-full bg-blue-600 hover:bg-blue-700 text-white" size="lg">
+                    {loading ? <span className="flex items-center justify-center gap-2">
+                        <span className="inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                        Signing in...
+                      </span> : 'Sign In'}
+                  </Button>
 
-              {/* Sign Up Link */}
-              <div className="text-center pt-2">
-                <p className="text-slate-400 text-sm">
-                  Don't have an account?{' '}
-                  <Link to="/register" className="text-violet-400 hover:text-violet-300 font-medium transition">
-                    Create one
-                  </Link>
-                </p>
-              </div>
-            </form>
+                  {}
+                  <div className="text-center pt-2">
+                    <p className="text-sm text-muted-foreground">
+                      Don't have an account?{' '}
+                      <Link to="/register" className="text-blue-600 hover:text-blue-700 font-medium transition">
+                        Create one
+                      </Link>
+                    </p>
+                  </div>
+                </form>
+              </CardContent>
+            </Card>
 
-            {/* Mobile Footer */}
+            {}
             <div className="text-center mt-8 lg:hidden">
-              <p className="text-xs text-slate-500">© 2024 UserHub</p>
+              <p className="text-xs text-muted-foreground">© 2024 SLY</p>
             </div>
           </div>
         </div>
       </div>
-    </div>
-  )
+    </div>;
 }

@@ -1,9 +1,7 @@
-import { Outlet } from 'react-router-dom'
-import Navbar from '../components/Navbar'
-
+import { Outlet } from 'react-router-dom';
+import Navbar from '../components/Navbar';
 export default function AuthLayout() {
-  return (
-    <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(124,58,237,0.22),_transparent_25%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.20),_transparent_18%),linear-gradient(180deg,_#020817_0%,_#0f172a_100%)] text-slate-100">
+  return <div className="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(124,58,237,0.22),_transparent_25%),radial-gradient(circle_at_bottom_right,_rgba(59,130,246,0.20),_transparent_18%),linear-gradient(180deg,_#020817_0%,_#0f172a_100%)] text-slate-100">
       <Navbar />
       <div className="flex flex-1 items-center justify-center px-4 py-12 sm:px-6">
         <div className="grid w-full max-w-6xl overflow-hidden rounded-[28px] border border-white/10 bg-slate-900/70 shadow-[0_30px_80px_rgba(15,23,42,0.8)] backdrop-blur-xl lg:grid-cols-2">
@@ -25,6 +23,5 @@ export default function AuthLayout() {
           </div>
         </div>
       </div>
-    </div>
-  )
+    </div>;
 }
